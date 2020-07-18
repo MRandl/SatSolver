@@ -78,9 +78,9 @@ object Sat {
   
   def assign(formula: Formula, varName : String, value: Boolean) : Formula = formula match {
     case Variable(name)     => if(name == varName) Const(value) else formula
-    case And(first, second) => And(assign(first, varName, value), assign(second, varName, value))
-    case Or (first, second) => Or (assign(first, varName, value), assign(second, varName, value))
-    case Not(something)     => Not(assign(something, varName, value))
+    case And(first, second) => nodeUpdate(formula, first, second, assign(_, varName, value), true)
+    case Or (first, second) => nodeUpdate(formula, first, second, assign(_, varName, value), false)
+    case Not(something)     => val x = assign(something, varName, value); if(x ne something) Not(x) else formula
     case Const(boolean)     => formula
   }
   
@@ -93,4 +93,4 @@ object Sat {
           run(assign(form, curVar, false), (curVar, false) +: assignment, restOfVars)
       }
     run(a, Nil, freeVarsOf(a))
-  }
+}
