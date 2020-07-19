@@ -1,12 +1,14 @@
 import scala.annotation.tailrec
 import scala.language.implicitConversions
 /**
- * A DPLL SAT solver.
+ * Sat is a singleton object that exposes :
+ *  1) a trait Formula and its subclasses, and
+ *  2) a solve() method to search for a valid assignment to a given Formula.
  * @author mathis.randl@epfl.ch
  * */
 object Sat {
   
-  private type Assignment = List[(String, Boolean)]
+  type Assignment = List[(String, Boolean)]
   
   sealed trait Formula {
     def asConst = asInstanceOf[Const]
