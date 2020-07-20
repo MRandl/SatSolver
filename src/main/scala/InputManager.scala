@@ -1,4 +1,4 @@
-import Sat._
+import solvers.NaiveSat._
 
 object InputManager {
 }
