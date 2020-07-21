@@ -54,7 +54,7 @@ object DpllSatSolver {
     //get rid of the clauses that contain the literal (they're satisfied) and delete the opposite literals
 
   private def pickLiteral(formula: Formula) : Literal =
-    absoluteLiteralsOf(formula).head
+    absoluteLiteralsOf(formula).head //room for improvement : currently branches are chosen at pseudorandom
 
   private def checkIfDone(formula: Formula) : Option[Boolean] =
     if(formula.clauses.isEmpty)
@@ -82,6 +82,7 @@ object DpllSatSolver {
 
     val pureLits = pureLiteralsOf(formula)
     val purified = pureLits.foldLeft(formula)((f, l) => assign(f, l, true))
-    run(purified, HashMap.from(pureLits.map(l => if(l < 0) (-l, false) else (l, true))))  map
+    val firstAssignment = HashMap.from(pureLits.map(l => if(l < 0) (-l, false) else (l, true))) 
+    run(purified, firstAssignment)  map
       (assigned => absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if(opa.isDefinedAt(l)) opa else opa + ((l, true))))
 }
