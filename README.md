@@ -2,6 +2,7 @@
 
 ### Introduction
 This is a SAT solver written in Scala 3. 
+It uses only immutable collections and constant references, respecting the functional programming principles.
 
 ### Requirements
 This project requires [Dotty](https://github.com/lampepfl/dotty), the experimental Scala 3 compiler.
