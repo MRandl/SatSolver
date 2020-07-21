@@ -1,7 +1,7 @@
 package solvers
 
 import scala.collection.IterableOnce
-import scala.collection.immutable.HashMap
+import scala.collection.immutable.{HashMap, HashSet}
 
 object DpllSat {
   
@@ -65,13 +65,15 @@ object DpllSat {
         case Some(false) => None
         case None => 
           val currHead = absoluteLiteralsOf(united).head
-          run(assign(united, currHead, true), newAssignment + ((currHead, true))) orElse run(assign(united, currHead, false), newAssignment + ((currHead, false)))
+          run(assign(united, currHead, true),  newAssignment + ((currHead, true))) orElse 
+          run(assign(united, currHead, false), newAssignment + ((currHead, false)))
       }
-      ???
-
+  
     val purelits : Set[Literal] = pureLiteralsOf(formula)
     val purified : Formula = purelits.foldLeft(formula)((f, l) => assign(f, l, true))
       //note : we don't assign true to all variables, but to the literals : for example, -3 is true <=> 3 is false
     val assignment = HashMap.from(purelits.map(l => if(l < 0) (-l, false) else (l, true)))
-    run(purified, assignment)
+    run(purified, assignment) map (assigned => 
+      absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if(opa.isDefinedAt(l)) opa else opa + ((l, true))))
+      //when we don't care about a variable, assign it to true when the solve function returns
 }
