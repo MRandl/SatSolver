@@ -1,9 +1,18 @@
-package solvers
-
-import scala.collection.IterableOnce
-import scala.collection.immutable.{HashMap, HashSet}
-
-object DpllSat {
+import scala.collection.immutable.HashMap
+/**
+ * DpllSatSolver is a singleton object that exposes the following :
+ * 
+ * 1) A type Literal that stores SAT literals (=variables with polarities)
+ * 2) A case class Clause that encapsulates a Set of Literals (interpreted as joined by Or's)
+ * 3) A case class Formula that encapsulates a Set of Clauses (interpreted as joined by And's)
+ * 4) A method solve that attempts to find a solution to the given Formula.
+ * 
+ * The solve method uses the original DPLL algorithm. This is quite basic compared to state-of-the-art ones,
+ * but will do the trick for the purposes of this project, which is mainly self-educational.
+ * 
+ * @author Mathis Randl <mathis.randl@epfl.ch>
+ * */
+object DpllSatSolver {
   
   type Literal = Long // define -x == Not(x), 0 is reserved
   type Assignment = Map[Literal, Boolean]
@@ -45,6 +54,9 @@ object DpllSat {
     Formula(formula.clauses filterNot (_.literals.contains(newLit)) map (x => Clause(x.literals - (-newLit))))
     //get rid of the clauses that contain the literal (they're satisfied) and delete the opposite literals
   
+  private def pickLiteral(formula: Formula) : Literal =
+    absoluteLiteralsOf(formula).head
+  
   private def checkIfDone(formula: Formula) : Option[Boolean] =
     if(formula.clauses.isEmpty)
       Some(true) //satisfiable with the given assignment
@@ -56,24 +68,21 @@ object DpllSat {
   def solve(formula: Formula) : Option[Assignment] =
     
     def run(formula: Formula, assignment: Assignment) : Option[Assignment] =
-      val unitlits = unitLiteralsOf(formula)
-      val united   = unitlits.foldLeft(formula)((f, l) => assign(f, l, true))
-      val newAssignment = assignment ++ unitlits.map(l => if(l < 0) (-l, false) else (l, true))
-      val checkDone = checkIfDone(united)
-      checkDone match {
+      val unitLiterals = unitLiteralsOf(formula)
+      val united       = unitLiterals.foldLeft(formula)((f, l) => assign(f, l, true))
+      val newAssignment = assignment ++ unitLiterals.map(l => if(l < 0) (-l, false) else (l, true))
+  
+      checkIfDone(united) match {
         case Some(true)  => Some(newAssignment)
         case Some(false) => None
         case None => 
-          val currHead = absoluteLiteralsOf(united).head
+          val currHead = pickLiteral(united)
           run(assign(united, currHead, true),  newAssignment + ((currHead, true))) orElse 
           run(assign(united, currHead, false), newAssignment + ((currHead, false)))
       }
   
-    val purelits : Set[Literal] = pureLiteralsOf(formula)
-    val purified : Formula = purelits.foldLeft(formula)((f, l) => assign(f, l, true))
-      //note : we don't assign true to all variables, but to the literals : for example, -3 is true <=> 3 is false
-    val assignment = HashMap.from(purelits.map(l => if(l < 0) (-l, false) else (l, true)))
-    run(purified, assignment) map (assigned => 
-      absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if(opa.isDefinedAt(l)) opa else opa + ((l, true))))
-      //when we don't care about a variable, assign it to true when the solve function returns
+    val pureLits = pureLiteralsOf(formula)
+    val purified = pureLits.foldLeft(formula)((f, l) => assign(f, l, true))
+    run(purified, HashMap.from(pureLits.map(l => if(l < 0) (-l, false) else (l, true))))  map
+      (assigned => absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if(opa.isDefinedAt(l)) opa else opa + ((l, true))))
 }
