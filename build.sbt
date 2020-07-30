@@ -8,5 +8,8 @@ lazy val root = project
 
     scalaVersion := dottyVersion,
 
-    libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
-  )
+    libraryDependencies ++= Seq(
+      "com.novocode" % "junit-interface" % "0.11" % "test",
+      ("org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0").withDottyCompat(scalaVersion.value)
+    )
+)
