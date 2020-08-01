@@ -1,8 +1,6 @@
 import DpllSatSolver._
 
-import scala.collection.immutable.HashSet
 import scala.io.Source.fromFile
-import scala.language.implicitConversions
 
 object Main {
   

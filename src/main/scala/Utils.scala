@@ -3,18 +3,17 @@ import java.util.concurrent._
 import scala.util.DynamicVariable
 
 object Utils {
-  
-  val numOfThreads = 2 * Runtime.getRuntime.availableProcessors()
-  
-  val scheduler = new DynamicVariable(new DefaultTaskScheduler)
 
-  val forkJoinPool = new ForkJoinPool
+  private val scheduler = new DefaultTaskScheduler
+  private val forkJoinPool = new ForkJoinPool
+
+  val numOfThreads = 2 * Runtime.getRuntime.availableProcessors()
 
   def task[T](body: => T): ForkJoinTask[T] = {
-    scheduler.value.schedule(body)
+    scheduler.schedule(body)
   }
-  
-  class DefaultTaskScheduler {
+
+  private class DefaultTaskScheduler {
     def schedule[T](body: => T): ForkJoinTask[T] = {
       val t = new RecursiveTask[T] {
         def compute = body
@@ -28,4 +27,5 @@ object Utils {
       t
     }
   }
+
 }
