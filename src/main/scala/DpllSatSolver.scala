@@ -22,22 +22,16 @@ import scala.util.{Failure, Success}
  **/
 object DpllSatSolver {
 
-  type Literal = Long // define -x == Not(x), 0 is reserved
+  type Literal    = Long // define -x == Not(x), 0 is reserved
   type Assignment = Map[Literal, Boolean]
-
-  final case class Clause(literals: Set[Literal]) {
-    override def toString: String = "(" + literals map (_.toString) mkString " Or " + ")"
-  }
-
-  final case class Formula(clauses: Set[Clause]) {
-    override def toString: String = "(" + clauses map (_.toString) mkString " And " + ")"
-  }
+  type Clause     = Set[Literal]
+  type Formula    = Set[Clause] //formula is assumed to be in cnf format
 
   /**
    * @return all of the literals of the formula
    **/
   private def literalsOf(formula: Formula): Set[Literal] =
-    formula.clauses flatten (clause => clause.literals)
+    formula.flatten
 
   /**
    * @return all of the literals, but without negations
@@ -56,20 +50,20 @@ object DpllSatSolver {
    * @return all literals that make up a clause all by themselves
    **/
   private def unitLiteralsOf(formula: Formula): Set[Literal] =
-    formula.clauses filter (x => x.literals.size == 1) flatten (clause => clause.literals)
+    (formula filter (x => x.size == 1)).flatten 
 
   private def assign(formula: Formula, literal: Literal, value: Boolean): Formula =
     val newLit: Literal = if (value) then literal else -literal
-    Formula(formula.clauses filterNot (_.literals.contains(newLit)) map (x => Clause(x.literals - (-newLit))))
+    formula filterNot (_.contains(newLit)) map (x => x - (-newLit))
     //get rid of the clauses that contain the literal (they're satisfied) and delete the opposite literals
-
+  
   private def pickLiteral(formula: Formula): Literal =
     absoluteLiteralsOf(formula).head //todo  room for improvement : currently, branches are chosen according to their hash value.
 
   private def checkIfDone(formula: Formula): Option[Boolean] =
-    if (formula.clauses.isEmpty)
+    if (formula.isEmpty)
       Some(true) //satisfiable with the given assignment
-    else if (formula.clauses exists (_.literals.isEmpty))
+    else if (formula exists (_.isEmpty))
       Some(false) //unsatisfiable
     else
       None //god only knows, we need to keep working
@@ -78,7 +72,7 @@ object DpllSatSolver {
 
     def run(formula: Formula, assignment: Assignment, threadNum: Int): Option[Assignment] =
       val unitLiterals = unitLiteralsOf(formula)
-      val united = unitLiterals.foldLeft(formula)((f, l) => assign(f, l, true))
+      val united = unitLiterals.foldLeft(formula)((f, l) => assign(f, l, true)) //no need to think hard for units
       val newAssignment = assignment ++ unitLiterals.map(l => if (l < 0) (-l, false) else (l, true))
 
       checkIfDone(united) match {
@@ -86,20 +80,10 @@ object DpllSatSolver {
         case Some(false) => None
         case None =>
           val currHead = pickLiteral(united)
-          if (threadNum < Utils.numOfThreads)
-            runparallel(
-              run(assign(united, currHead, true),  newAssignment + ((currHead, true)),  threadNum * 2),
-              run(assign(united, currHead, false), newAssignment + ((currHead, false)), threadNum * 2)
-            )
-          else
-              run(assign(united, currHead, true),  newAssignment + ((currHead, true)),  threadNum) orElse
-              run(assign(united, currHead, false), newAssignment + ((currHead, false)), threadNum)
+          val first  =  task(run(assign(united, currHead, true),  newAssignment + ((currHead, true)),  threadNum))
+          val second =       run(assign(united, currHead, false), newAssignment + ((currHead, false)), threadNum)
+          second orElse first.join //second goes first so that we only block if really needed
       }
-
-    def runparallel(asTrue: => Option[Assignment], asFalse: => Option[Assignment]) =
-      val first = task(asTrue)
-      val second = asFalse
-      first.join orElse second
 
     val pureLits = pureLiteralsOf(formula)
     val purified = pureLits.foldLeft(formula)((f, l) => assign(f, l, true))
