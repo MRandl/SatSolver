@@ -5,8 +5,8 @@ import scala.io.Source.fromFile
 object Main {
   
   def main(args: Array[String]): Unit = {
-    val a = System.currentTimeMillis()
     val inputSeq = fromFile(if(args.size == 0) then "res/2-easy.dimacs" else args(0)).getLines().toSeq
+    val a = System.currentTimeMillis()
     val res = (InputManager.noSanitizeInput(inputSeq))
     println("Solving took : " + (System.currentTimeMillis() - a) + "ms")
     res match {

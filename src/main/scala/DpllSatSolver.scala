@@ -1,19 +1,18 @@
 import scala.collection.immutable.HashMap
-import Utils._
-
 import scala.util.{Failure, Success}
+import Utils._
 
 /**
  * DpllSatSolver is a singleton object that exposes the following :
  *
  * - A type Literal that stores SAT literals (=boolean variables with polarities)
  *
- * - A case class Clause that encapsulates a Set of Literals (interpreted as joined by Or's)
+ * - A type Clause that equals a Set of Literals (interpreted as joined by Or's)
  *
- * - A case class Formula that encapsulates a Set of Clauses (interpreted as joined by And's)
+ * - A type Formula that equals a Set of Clauses (interpreted as joined by And's). This means the program only supports
+ * the DNF form, which is a usual constraint for SAT solvers
  *
  * - A method solve that attempts to find a solution to the given problem.
- *
  *
  * The solve method uses the original DPLL algorithm. This is quite basic compared to state-of-the-art ones,
  * but will do the trick for the purposes of this project, which is mainly self-educational.
@@ -44,7 +43,7 @@ object DpllSatSolver {
    **/
   private def pureLiteralsOf(formula: Formula): Set[Literal] =
     val lits = literalsOf(formula)
-    lits filterNot (lit => lits contains -lit)
+    lits filterNot (literal => lits contains -literal)
 
   /**
    * @return all literals that make up a clause all by themselves
@@ -52,13 +51,13 @@ object DpllSatSolver {
   private def unitLiteralsOf(formula: Formula): Set[Literal] =
     (formula filter (x => x.size == 1)).flatten 
 
-  private def assign(formula: Formula, literal: Literal, value: Boolean): Formula =
-    val newLit: Literal = if (value) then literal else -literal
-    formula filterNot (_.contains(newLit)) map (x => x - (-newLit))
+  private def assignPolarity(formula: Formula, literal: Literal, value: Boolean): Formula =
+    val adjustedLiteral: Literal = if (value) then -literal else literal
+    formula filterNot (_.contains(-adjustedLiteral)) map (x => x - adjustedLiteral)
     //get rid of the clauses that contain the literal (they're satisfied) and delete the opposite literals
   
   private def pickLiteral(formula: Formula): Literal =
-    absoluteLiteralsOf(formula).head //todo  room for improvement : currently, branches are chosen according to their hash value.
+    absoluteLiteralsOf(formula).head //todo: room for improvement.
 
   private def checkIfDone(formula: Formula): Option[Boolean] =
     if (formula.isEmpty)
@@ -69,10 +68,9 @@ object DpllSatSolver {
       None //god only knows, we need to keep working
 
   def solve(formula: Formula): Option[Assignment] =
-
     def run(formula: Formula, assignment: Assignment, threadNum: Int): Option[Assignment] =
       val unitLiterals = unitLiteralsOf(formula)
-      val united = unitLiterals.foldLeft(formula)((f, l) => assign(f, l, true)) //no need to think hard for units
+      val united = unitLiterals.foldLeft(formula)((f, l) => assignPolarity(f, l, true))
       val newAssignment = assignment ++ unitLiterals.map(l => if (l < 0) (-l, false) else (l, true))
 
       checkIfDone(united) match {
@@ -80,13 +78,14 @@ object DpllSatSolver {
         case Some(false) => None
         case None =>
           val currHead = pickLiteral(united)
-          val first  =  task(run(assign(united, currHead, true),  newAssignment + ((currHead, true)),  threadNum))
-          val second =       run(assign(united, currHead, false), newAssignment + ((currHead, false)), threadNum)
-          second orElse first.join //second goes first so that we only block if really needed
+          val remote =  task(run(assignPolarity(united, currHead, true),  newAssignment + ((currHead, true)),  threadNum))
+          val local  =       run(assignPolarity(united, currHead, false), newAssignment + ((currHead, false)), threadNum)
+          local orElse remote.join //local is guaranteed to be done, so we check it first instead of blocking for remote
       }
 
+    assert(!literalsOf(formula).contains(0), "Sat formula may not contain zero")
     val pureLits = pureLiteralsOf(formula)
-    val purified = pureLits.foldLeft(formula)((f, l) => assign(f, l, true))
+    val purified = pureLits.foldLeft(formula)((f, l) => assignPolarity(f, l, true))
     val firstAssignment = HashMap.from(pureLits.map(l => if (l < 0) (-l, false) else (l, true)))
     run(purified, firstAssignment, 1) map 
       (assigned => absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if (opa.isDefinedAt(l)) opa else opa + ((l, true))))
