@@ -1,7 +1,7 @@
 ## SatSolver
 
 ### Introduction
-This is a functional SAT solver written in Scala 3.
+This is a parallel and functional SAT solver written in Scala 3.
 
 ### Requirements
 This project requires [Dotty](https://github.com/lampepfl/dotty), the experimental compiler for Scala 3.
@@ -13,7 +13,7 @@ On my old i5-4590 (4 cores, no HT), it can handle anywhere from 50 to 70 variabl
 It was engineered to scale well with high core-density processors, your mileage might then vary depending on your hardware.
 
 ### How do I run it ?
-Download it, compile it with Dotty and run with one argument indicating the path where the file is located. Four examples are included, use res/XXX.dimacs to run one of those.
+Download it, compile it with Dotty and run with one argument indicating the path where the file is located. Four examples are included, use res/<something>.dimacs to run one of those.
 
 ### Can I reuse/modify this project ?
 Sure, but keep it open source and cite your sources. See the license for more details.

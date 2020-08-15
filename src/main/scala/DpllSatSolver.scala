@@ -2,6 +2,9 @@ import scala.collection.immutable.HashMap
 import scala.util.{Failure, Success}
 import Multithreading._
 
+import scala.concurrent.Future
+
+
 /**
  * DpllSatSolver is a singleton object that exposes the following :
  *
@@ -20,7 +23,7 @@ import Multithreading._
  * @author Mathis Randl <mathis.randl@epfl.ch>
  **/
 object DpllSatSolver {
-
+  
   type Literal    = Long // define -x == Not(x), 0 and Long.MinValue are reserved
   type Assignment = Map[Literal, Boolean]
   type Clause     = Set[Literal]
@@ -105,7 +108,7 @@ object DpllSatSolver {
           //local is guaranteed to be done, so we check it first instead of blocking for remote
       }
 
-    assert(!literalsOf(formula).exists(x => x == 0 || x == Long.MinValue), "Sat formula may not contain illegal longs.")
+    assert(!literalsOf(formula).exists(x => x == 0 || x == Long.MinValue), "Sat formula cannot contain illegal longs.")
     val pureLits = pureLiteralsOf(formula)
     val purified = pureLits.foldLeft(formula)((f, l) => assignTrue(f, l))
     val firstAssignment = HashMap.from(pureLits.map(l => if (l < 0) (-l, false) else (l, true)))
