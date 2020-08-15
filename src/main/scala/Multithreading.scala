@@ -1,6 +1,7 @@
 import java.util.concurrent._
 
-object Utils {
+//taken from Martin Odersky's course at EPFL, then modified a bit
+object Multithreading {
   
   private val forkJoinPool = new ForkJoinPool
   

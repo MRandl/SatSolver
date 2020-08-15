@@ -1,6 +1,6 @@
 import scala.collection.immutable.HashMap
 import scala.util.{Failure, Success}
-import Utils._
+import Multithreading._
 
 /**
  * DpllSatSolver is a singleton object that exposes the following :
@@ -53,25 +53,25 @@ object DpllSatSolver {
    * @return all literals that make up a clause all by themselves in the argument
    **/
   private def unitLiteralsOf(formula: Formula): Set[Literal] =
-    formula.filter(x => x.size == 1).flatten 
-  
+    formula.filter(_.size == 1).flatten
+
   /**
    * Assigns true to a literal within a formula and false to its opposite.
    * This takes polarity into account : for example, assigning true to -2 also assigns false to 2.
-   * 
+   *
    * The resulting formula is guaranteed not to contain the variable anymore.
-   * 
+   *
    * Assigning a value to a variable that does not exist in a formula yields a new formula that deeply equals
-   * the former and may or may not be referentially equal to it, depending on the Set implementation you use.
-   * 
+   * the former and may or may not be referentially equal to it, depending on the Set implementation used.
+   *
    * @param formula some Formula containing the variable to assign
-   * @param literal some Literal that will be assigned 
-   * @return a Formula that corresponds to the assignment 
+   * @param literal some Literal that will be assigned
+   * @return a Formula that corresponds to the assignment
    * */
   private def assignTrue(formula: Formula, literal: Literal): Formula =
     formula.filterNot(_.contains(literal)).map(x => x - (-literal))
     //get rid of the clauses that contain the literal (they're satisfied) and delete the opposite literals
-  
+
   /**
    * Returns some absolute literal within the formula.
    * @param formula some Formula
@@ -101,13 +101,14 @@ object DpllSatSolver {
           val litH = pickLiteral(united)
           val remote = task(run(assignTrue(united,  litH), newAssignment + ((litH, true))))
           val local  =      run(assignTrue(united, -litH), newAssignment + ((litH, false)))
-          local orElse remote.join //local is guaranteed to be done, so we check it first instead of blocking for remote
+          local orElse remote.join 
+          //local is guaranteed to be done, so we check it first instead of blocking for remote
       }
 
     assert(!literalsOf(formula).exists(x => x == 0 || x == Long.MinValue), "Sat formula may not contain illegal longs.")
     val pureLits = pureLiteralsOf(formula)
     val purified = pureLits.foldLeft(formula)((f, l) => assignTrue(f, l))
     val firstAssignment = HashMap.from(pureLits.map(l => if (l < 0) (-l, false) else (l, true)))
-    run(purified, firstAssignment) map 
-      (assigned => absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if (opa.isDefinedAt(l)) opa else opa + ((l, true))))
+    run(purified, firstAssignment).map(assigned => 
+      absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if (opa.contains(l)) opa else opa + ((l, true))))
 }

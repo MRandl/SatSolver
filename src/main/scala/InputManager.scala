@@ -9,6 +9,6 @@ import scala.collection.immutable.HashSet
 object InputManager {
   def noSanitizeInputAndRun(str: Iterable[String]) =
     val strings = str.filterNot(_.startsWith("c")).tail //ignore the first element and comments
-    val clauses = strings.map(str => HashSet from (str.dropRight(1) split (" ") filterNot (_.isEmpty) map (_.toLong)) )
+    val clauses = strings.map(str => HashSet.from(str.dropRight(1).split(" ").filterNot(_.isEmpty).map(_.toLong)))
     DpllSatSolver.solve(HashSet.from(clauses))
 }
