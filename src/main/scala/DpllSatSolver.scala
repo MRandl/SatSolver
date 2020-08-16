@@ -13,7 +13,7 @@ import scala.concurrent.Future
  * - A type Clause that equals a Set of Literals (interpreted as joined by Or's)
  *
  * - A type Formula that equals a Set of Clauses (interpreted as joined by And's). This means the program only supports
- * the DNF form, which is a usual constraint for SAT solvers
+ * the CNF form, which is a usual constraint for SAT solvers
  *
  * - A method solve that attempts to find a solution to the given problem.
  *
@@ -81,7 +81,7 @@ object DpllSatSolver {
    * @return some literal guaranteed to be an absolute literal of the argument
    */
   private def pickLiteral(formula: Formula): Literal =
-    absoluteLiteralsOf(formula).head //todo: room for improvement.
+    absoluteLiteralsOf(formula).head
 
   private def checkIfDone(formula: Formula): Option[Boolean] =
     if (formula.isEmpty)
