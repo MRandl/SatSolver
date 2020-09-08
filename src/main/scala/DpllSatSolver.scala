@@ -62,18 +62,13 @@ object DpllSatSolver {
    * Assigns true to a literal within a formula and false to its opposite.
    * This takes polarity into account : for example, assigning true to -2 also assigns false to 2.
    *
-   * The resulting formula is guaranteed not to contain the variable anymore.
-   *
-   * Assigning a value to a variable that does not exist in a formula yields a new formula that deeply equals
-   * the former and may or may not be referentially equal to it, depending on the Set implementation used.
-   *
    * @param formula some Formula containing the variable to assign
    * @param literal some Literal that will be assigned
    * @return a Formula that corresponds to the assignment
    * */
   private def assignTrue(formula: Formula, literal: Literal): Formula =
     formula.filterNot(_.contains(literal)).map(x => x - (-literal))
-    //get rid of the clauses that contain the literal (they're satisfied) and delete the opposite literals
+    //get rid of the clauses that contain the literal and delete the opposite literals
 
   /**
    * Returns some absolute literal within the formula.
@@ -91,27 +86,37 @@ object DpllSatSolver {
     else
       None //god only knows, we need to keep working
 
+  /**
+   * Attempts to solve the given formula.
+   * @return None when it is unsatisfiable, and Some(value) when it is satisfiable,
+   *  using for example 'value' as an assignment
+   */
   def solve(formula: Formula): Option[Assignment] =
     def run(formula: Formula, assignment: Assignment): Option[Assignment] =
-      val unitLiterals = unitLiteralsOf(formula)
-      val united = unitLiterals.foldLeft(formula)((f, l) => assignTrue(f, l))
-      val newAssignment = assignment ++ unitLiterals.map(l => if (l < 0) (-l, false) else (l, true))
 
-      checkIfDone(united) match {
+      val unitLiterals = unitLiteralsOf(formula)
+      val unitLess = unitLiterals.foldLeft(formula)((f, l) => assignTrue(f, l))
+      val newAssignment = assignment ++ unitLiterals.map(l => if (l < 0) (-l, false) else (l, true))
+      //that's a speedup : trivially get rid of all literals that appear only once.
+      //this divides the work by two every time we find one, so definitely worth it
+
+      checkIfDone(unitLess) match {
         case Some(true) => Some(newAssignment)
         case Some(false) => None
         case None =>
-          val litH = pickLiteral(united)
-          val remote = task(run(assignTrue(united,  litH), newAssignment + ((litH, true))))
-          val local  =      run(assignTrue(united, -litH), newAssignment + ((litH, false)))
+          val litH = pickLiteral(unitLess)
+          val remote = task(run(assignTrue(unitLess,  litH), newAssignment + ((litH, true))))
+          val local  =      run(assignTrue(unitLess, -litH), newAssignment + ((litH, false)))
           local orElse remote.join 
           //local is guaranteed to be done, so we check it first instead of blocking for remote
       }
 
     assert(!literalsOf(formula).exists(x => x == 0 || x == Long.MinValue), "Sat formula cannot contain illegal longs.")
+    
     val pureLits = pureLiteralsOf(formula)
     val purified = pureLits.foldLeft(formula)((f, l) => assignTrue(f, l))
     val firstAssignment = HashMap.from(pureLits.map(l => if (l < 0) (-l, false) else (l, true)))
+    
     run(purified, firstAssignment).map(assigned => 
       absoluteLiteralsOf(formula).foldLeft(assigned)((opa, l) => if (opa.contains(l)) opa else opa + ((l, true))))
 }
