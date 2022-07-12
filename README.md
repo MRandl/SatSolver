@@ -8,8 +8,7 @@ This project requires [Dotty](https://github.com/lampepfl/dotty), the experiment
 
 ### What can it do ?
 This piece of code can solve decent SAT problems given in the standard Dimacs CNF format.
-On my old i5-4590, it can handle anywhere from 50 to 70 variables almost instantly, and 200-250 variables in the time you need for a coffee. This is not competition-worthy but not ridiculous either.
-It was engineered to scale well with the amount of available cores, your mileage might then vary depending on your hardware.
+On my old i5-4590, it can handle anywhere from 50 to 70 variables almost instantly, and 200-250 variables in the time you need for a coffee. This is hence not meant to be used in any serious context.
 
 ### How do I run it ?
 Download it, compile it with Dotty and run with one argument indicating the path where the Dimacs file to solve is located. Four examples are included, use res/\<something\>.dimacs to run one of those.
