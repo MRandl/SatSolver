@@ -11,7 +11,7 @@ This piece of code can solve SAT problems given in the standard Dimacs CNF forma
 On my old i5-4590, it can handle anywhere from 50 to 70 variables almost instantly, and 200-250 variables in the time you need for a coffee. This is hence not meant to be used in any serious context.
 
 ### How do I run it ?
-Download it, compile it with Dotty and run with one argument indicating the path where the Dimacs file to solve is located. Four examples are included, use res/\<something\>.dimacs to run one of those.
+Download it, compile it with Dotty and run with one argument indicating the path where the Dimacs file to solve is located. Four examples are included, use res/\<something\>.dimacs to run one of those. An example bash command would be ```$ sbt "run res/3-medium.dimacs"```
 
 ### Can I reuse/modify this project ?
 Sure, but keep it open source and cite your sources. See the license for more details.
